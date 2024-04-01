@@ -1,0 +1,140 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MoveTestWithChild : MonoBehaviour
+{
+
+    [Header("Movement")]
+    public float acceleration = 5f;
+    public Vector3 dir;
+    public float distanceStepCheck;
+    public float groundSphereDistance = 2f;
+    public float jumpDistanceCheck;
+    public bool isGrounded;
+    public bool jumpCheck;
+    public bool canJump;
+
+
+
+    //public float verticalAxis;
+    //public float horizontalAxis;
+
+    public Vector3 forwardMovement;
+    public Vector3 rightMovement;
+
+    public Vector3 forwardSlide;
+    public Vector3 rightSlide;
+
+
+    float slopeAngle;
+    float forwardAngle;
+    float rightAngle;
+    bool onSlope;
+    RaycastHit stepHit;
+
+    public Transform VecRef; //for running
+    public Transform player;
+    public Transform playerRb;
+    public Rigidbody rb;
+    public Transform groundCheck;
+
+    public LayerMask isGround;
+    public LayerMask IgnorePlayerLayermask;
+    float rotatedX;
+    float rotatedY;
+    float rotatedZ;
+
+    public Vector3 slideDir;
+    StateManager sm;
+
+    //Wallrun wr;
+
+    //[HideInInspector]
+    public float horizontalInput;
+    //[HideInInspector]
+    public float verticalInput;
+    public KeyCode sprintButton = KeyCode.LeftShift;
+    public KeyCode jumpButton = KeyCode.Space;
+    //StateManager sm;
+
+    [SerializeField] private SlidingVectorRotation sv;
+
+    public float slidingStrafeSpeed;
+
+    void Start()
+    {
+        rb = playerRb.GetComponent<Rigidbody>();
+        sm = GetComponent<StateManager>();
+
+    }
+
+
+    void Update()
+    {
+        Step();
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundSphereDistance, isGround);
+        jumpCheck = Physics.CheckSphere(groundCheck.position, jumpDistanceCheck, isGround);
+
+    }
+
+
+    void FixedUpdate()
+    {
+        PlayerMovement();
+    }
+
+    void PlayerMovement()
+    {
+
+        VecRef.transform.eulerAngles = new Vector3(rotatedX, rb.transform.eulerAngles.y, rotatedZ);  //yyayayyaya
+
+        horizontalInput = Input.GetAxis("Horizontal");
+        verticalInput = Input.GetAxis("Vertical");
+
+        //dir for running and sprinting
+        forwardMovement = VecRef.transform.forward * verticalInput;
+        rightMovement = VecRef.transform.right * horizontalInput;
+        dir = (forwardMovement + rightMovement).normalized;
+
+
+        //dir for sliding
+        forwardSlide = sv.transform.forward * sm.slideVertical;
+        rightSlide = sv.transform.right * sm.slideHorizontal;
+        slideDir = (forwardSlide + rightSlide).normalized;
+
+
+
+
+        if (dir != Vector3.zero) //for bug
+            player.transform.forward = dir * Time.deltaTime;
+
+        //apo edw k katw ta speed checks
+    }
+
+    void Step()
+    {
+        onSlope = Physics.Raycast(VecRef.transform.position, Vector3.down, out stepHit, distanceStepCheck, ~IgnorePlayerLayermask);
+
+        if (onSlope)  //sinistwsa
+        {
+
+            slopeAngle = Vector3.Angle(Vector3.up, stepHit.normal);
+            forwardAngle = Vector3.Angle(VecRef.transform.forward, stepHit.normal) - 90;
+            rightAngle = Vector3.Angle(VecRef.transform.right, stepHit.normal) - 90;
+
+            rotatedX = VecRef.transform.eulerAngles.x - forwardAngle;
+            rotatedZ = VecRef.transform.eulerAngles.z + rightAngle;
+        }
+        else
+        {
+
+            slopeAngle = Vector3.Angle(Vector3.up, stepHit.normal);
+            forwardAngle = Vector3.Angle(VecRef.transform.forward, stepHit.normal) + 45;
+            rightAngle = Vector3.Angle(VecRef.transform.right, stepHit.normal) + 45;
+
+            rotatedX = 0f;
+            rotatedZ = 0f;
+        }
+    }
+}
