@@ -1,0 +1,276 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SpeedManager : MonoBehaviour
+{
+    MoveTestWithChild ms;
+    StateManager sm;
+    [SerializeField] private SlidingVectorRotation sv;  // Script reference
+
+    RaycastHit slopeHit;
+    public float slopeCheckDistance;
+
+    [Header("Timers For Lerping Speeds")]
+    public float runningTimer;
+    public float sprintingTimer;
+    public float slidingTimer;
+    public float stopSlidingTimer;
+    public float maxSpeedTimer;
+    
+    [Header("Elapsed Times")]
+    public float elapsedTimeForRunning;
+    public float elapsedTimeforSprinting;
+    public float elapsedTimeForSliding;
+    public float elapsedTimeForMaxSpeed;
+
+    [Header("Speeds")]
+    public float slidingSpeed;
+    public float runningSpeed;
+    public float maxRunningSpeed;
+    public float currentSpeed;
+   
+    [Header("Jump Height")]
+    public float jumpForce;
+    public float x;
+
+    void Start()
+    {
+        ms = GetComponent<MoveTestWithChild>();
+        sm = GetComponent<StateManager>();
+
+    }
+
+    void Update()
+    {
+
+        //print(isOnSlope());
+    }
+
+    void FixedUpdate()
+    {
+        /*if (Input.GetKey(ms.jumpButton) && ms.jumpCheck)
+        {
+            ms.rb.isKinematic = false;
+            ms.rb.velocity = new Vector3(ms.rb.velocity.x, 0, ms.rb.velocity.z); //need to prevent inconsistant jump heights
+            ms.rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+        }*/
+
+        //print("");
+        if (sm.movementState == StateManager.MovementState.Idle)
+            CalculateIdleSpeed();
+
+        if (sm.movementState == StateManager.MovementState.Running)
+            CalculateRunningSpeed();
+
+        if (sm.movementState == StateManager.MovementState.Sprinting)
+            CalculateSprintingSpeed();
+
+        //if (sm.movementState == StateManager.MovementState.Crouching)
+            //CalculateCrouchingSpeed();
+
+        if (sm.movementState == StateManager.MovementState.Sliding)
+            CalculateSlidingSpeed();
+
+        if (sm.movementState == StateManager.MovementState.Jumping)
+            CalculateJumpSpeed();
+        
+        if (sm.movementState == StateManager.MovementState.Wallrunning)
+            CalculateWallrunSpeed();
+
+
+    }
+    void CalculateIdleSpeed()
+    {
+        elapsedTimeForMaxSpeed = 0;
+        elapsedTimeForRunning = 0;
+        elapsedTimeforSprinting = 0;
+        elapsedTimeForSliding = 0;
+
+        if (ms.isGrounded && Input.GetKey(ms.jumpButton) && ms.jumpCheck) //for jumping on slope while not moving
+        {
+            ms.rb.isKinematic = false;
+        }
+            ResetSpeed();
+        if (ms.isGrounded && !Input.GetKey(ms.jumpButton))
+        {
+            if(isOnSlope())
+                ms.rb.isKinematic = true; //to prevent rb sliding down the slope when not moving
+
+            //elapsedTimeForRunning = 0;
+        }
+        if (!ms.isGrounded)
+        {
+            Physics.gravity = new Vector3(0, -50, 0);
+
+        }
+
+    }
+
+    public void CalculateRunningSpeed()
+    {
+        slidingSpeed = 0;
+        elapsedTimeforSprinting = 0;
+        elapsedTimeForSliding = 0;
+
+        ms.rb.isKinematic = false;
+        //maxRunningSpeed = 1000;
+        if (maxRunningSpeed > 900)
+        {
+            elapsedTimeForMaxSpeed += Time.deltaTime;
+            maxRunningSpeed = Mathf.Lerp(maxRunningSpeed, 900, elapsedTimeForMaxSpeed / maxSpeedTimer);
+        }
+        if (isOnSlope() && ms.canJump)
+            Physics.gravity = new Vector3(0, -300, 0);
+        else
+            Physics.gravity = new Vector3(0, -50, 0);
+
+
+
+        if (ms.isGrounded && ms.jumpCheck) //moving and not jumping
+        {
+            elapsedTimeForRunning += Time.deltaTime;
+            runningSpeed = Mathf.Lerp(50, maxRunningSpeed, elapsedTimeForRunning / runningTimer);
+            //ms.rb.velocity = ms.dir * runningSpeed * Time.deltaTime;
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.dir.y * runningSpeed * Time.deltaTime, ms.dir.z * runningSpeed * Time.deltaTime);
+            
+           
+        }
+        else if (ms.isGrounded && !ms.jumpCheck) //moving and jumping
+        {
+
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+
+        }
+
+        if (!ms.isGrounded && !ms.jumpCheck)  //falling
+        {
+            Physics.gravity = new Vector3(0, -50, 0);
+            elapsedTimeForRunning += Time.deltaTime;
+            runningSpeed = Mathf.Lerp(50, maxRunningSpeed, elapsedTimeForRunning / runningTimer);
+
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+            //ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+        }
+
+        
+    }
+
+    void CalculateSprintingSpeed()
+    {
+
+        elapsedTimeForRunning = 0;
+        elapsedTimeForSliding = 0;
+        elapsedTimeForMaxSpeed = 0;
+
+        ms.rb.isKinematic = false;
+
+        maxRunningSpeed = 1300;
+        elapsedTimeforSprinting += Time.deltaTime;
+        runningSpeed = Mathf.Lerp(runningSpeed , maxRunningSpeed, elapsedTimeforSprinting / sprintingTimer);
+        //ms.rb.velocity = ms.dir * runningSpeed * Time.deltaTime;
+
+        if(ms.isGrounded && ms.jumpCheck) //moving and not jumping
+        {
+            ms.rb.velocity = ms.dir * runningSpeed * Time.deltaTime;
+        }
+        else if (ms.isGrounded && !ms.jumpCheck) //moving and jumping
+        {
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+
+        }
+
+        if (!ms.isGrounded) //falling
+        {
+            Physics.gravity = new Vector3(0, -50, 0);
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+
+        }
+
+
+    }
+
+    /*void CalculateCrouchingSpeed()
+    {
+        ms.rb.isKinematic = false;
+
+        maxRunningSpeed = 450;
+
+    }*/
+
+    void CalculateSlidingSpeed()
+    {
+        elapsedTimeForMaxSpeed = 0;
+        elapsedTimeforSprinting = 0;
+        elapsedTimeForRunning = 0;
+        //float tempSpeed = runningSpeed;
+        ms.rb.isKinematic = false;
+
+
+        if (ms.isGrounded && ms.jumpCheck) //sliding on ground
+        {
+            elapsedTimeForSliding += Time.deltaTime;
+            slidingSpeed = Mathf.Lerp(1600, 0, elapsedTimeForSliding / slidingTimer);
+
+            //ms.rb.velocity =  ms.dir * slidingSpeed * Time.deltaTime;
+            ms.rb.velocity = new Vector3(ms.slideDir.x * slidingSpeed * Time.deltaTime, ms.rb.velocity.y, ms.slideDir.z * slidingSpeed * Time.deltaTime);
+
+        }
+        if ((!ms.isGrounded || !ms.jumpCheck) ) //sliding on air
+        {
+            Physics.gravity = new Vector3(0, -50, 0);
+            elapsedTimeForSliding += Time.deltaTime;
+
+            runningSpeed = Mathf.Lerp(slidingSpeed, 250, elapsedTimeForSliding / stopSlidingTimer);
+            //slidingSpeed = Mathf.Lerp(slidingSpeed, 250, elapsedTimeForSliding / stopSlidingTimer);
+            slidingSpeed = runningSpeed;
+            ms.rb.velocity = new Vector3(ms.slideDir.x * slidingSpeed * Time.deltaTime, ms.rb.velocity.y, ms.slideDir.z * slidingSpeed * Time.deltaTime);
+
+        }
+    }
+
+    void CalculateJumpSpeed()
+    {
+        ms.rb.isKinematic = false;
+        ms.rb.velocity = new Vector3(ms.rb.velocity.x, 0, ms.rb.velocity.z); //need to prevent inconsistant jump heights
+        ms.rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+        if (Input.GetKey(sm.slideKey))
+        {
+            ms.rb.velocity = new Vector3(ms.slideDir.x * slidingSpeed * Time.deltaTime, ms.rb.velocity.y, ms.slideDir.z * slidingSpeed * Time.deltaTime);
+
+        }
+        else
+            ms.rb.velocity = new Vector3(ms.dir.x * runningSpeed * Time.deltaTime, ms.rb.velocity.y, ms.dir.z * runningSpeed * Time.deltaTime);
+        slidingSpeed += x;
+
+    }
+
+    void CalculateWallrunSpeed()
+    {
+
+    }
+
+
+    private bool isOnSlope()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, slopeCheckDistance))
+        {
+            if (slopeHit.normal != Vector3.up) //if on slope{
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    void ResetSpeed()
+    {
+        runningSpeed = 0;
+    }
+}
