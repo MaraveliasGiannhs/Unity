@@ -1,0 +1,155 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class StateManager : MonoBehaviour
+{
+    MoveTestWithChild ms;
+    SlidingResize ss;
+    Wallrun ws;
+    SpeedManager sm;
+    float x, y, z;
+
+    public KeyCode slideKey;
+    public KeyCode sprintButton;
+    public KeyCode jumpButton;
+    bool isGrounded;
+    bool canJump;
+
+    public KeyCode W = KeyCode.W;
+    public KeyCode A = KeyCode.A;
+    public KeyCode S = KeyCode.S;
+    public KeyCode D = KeyCode.D;
+
+    public float slideHorizontal;
+    public float slideVertical;
+
+    public enum MovementState{
+        Idle, 
+        Running, 
+        Sprinting, 
+        Crouching,
+        Sliding,
+        Jumping,
+        Wallrunning
+    };
+    public MovementState movementState;
+
+
+    void Start()
+    {
+        ms = GetComponent<MoveTestWithChild>();
+        ss = GetComponent<SlidingResize>();
+        ws = GetComponentInParent<Wallrun>();//GetComponent<Wallrun>();
+        sm = GetComponentInParent<SpeedManager>();
+        
+        /*slideKey = ss.slideKey;
+        sprintButton = ms.sprintButton;
+        jumpButton = ms.jumpButton;
+        isGrounded = ms.isGrounded;*/
+
+    }
+
+    void Update()
+    {
+        z = ms.verticalInput;
+        x = ms.horizontalInput;
+
+        slideKey = ss.slideKey;
+        sprintButton = ms.sprintButton;
+        jumpButton = ms.jumpButton;
+        isGrounded = ms.isGrounded;
+        canJump = ms.jumpCheck;
+
+
+        ChangeState(); //here or in fixedupdate? //
+
+    }
+    private void FixedUpdate()
+    {
+        //ChangeState();
+
+    }
+
+    void ChangeState()
+    {
+
+        // Not Moving
+        if (!Input.GetKey(slideKey) && !IsPressingWASDKeys() )
+        {
+            movementState = MovementState.Idle;
+            slideHorizontal = 0;
+            slideVertical = 0;
+            //print("is idle");
+        }
+        
+        
+
+        // Running                                                         
+        if (!Input.GetKey(slideKey) && IsPressingWASDKeys())
+        {
+            movementState = MovementState.Running;
+
+            slideHorizontal = ms.horizontalInput;
+            slideVertical = ms.verticalInput;
+            //print("is running");
+        }
+
+
+
+        // Crouching
+        //if (Input.GetKey(slideKey) && !IsPressingWASDKeys())
+        //{
+            //movementState = MovementState.Crouching;
+            //print("is crouching");
+        //}
+
+
+
+        // Sliding
+        if (Input.GetKey(slideKey))
+        {
+            movementState = MovementState.Sliding;
+
+
+        }
+        
+        if(Input.GetKey(slideKey) && sm.slidingSpeed == 0)
+        {
+
+        }
+
+
+
+            // Sprinting
+            if (Input.GetKey(sprintButton) && !Input.GetKey(slideKey) && IsPressingWASDKeys() )
+            {
+                movementState = MovementState.Sprinting;
+                //print("is sprinting");
+            }
+
+
+
+        // Jumping
+        if ((Input.GetKey(ms.jumpButton) && ms.jumpCheck))
+        {
+            movementState = MovementState.Jumping;
+            //print("is jumping");
+        }
+
+
+        // Wallrunning
+        /*if (ws.CanWallRun() && (ws.wallIsleft || ws.wallIsRight))
+        {
+            movementState = MovementState.Wallrunning;
+        }*/
+    }
+
+    public bool IsPressingWASDKeys()
+    {
+        if (Input.GetKey(W) || Input.GetKey(A) || Input.GetKey(S) || Input.GetKey(D))
+            return true;
+        else
+            return false;
+    }
+}
