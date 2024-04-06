@@ -1,0 +1,115 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine; 
+
+public class SlidingResize : MonoBehaviour
+{
+    [Header("References")]
+    public Transform player;
+    private Rigidbody rb;   //if its private the GetComponent doesnt work so it doesnt fetch the players rigidbody ???
+    public LayerMask Player; //for raycast slidingHit to ignore player colliders 
+
+    [Header("Sliding")]
+    public float elapsedTimeForCrouch;
+    public float elapsedTimeForStanding;
+    public AnimationCurve curve;
+    public float time;
+    public float distanceAboveHeadWhenCrouching;  //to keep player crouched when theres a wall above him while crouched (prevents clipping)
+    public bool isSliding;
+
+
+    private float playerHeight; //players height before sliding
+    private float slidingHeight; //players height before sliding
+    private float currentHeight;
+
+    [Header("Input")]
+    public KeyCode slideKey = KeyCode.LeftControl;
+
+    private RaycastHit slidingHit;
+
+    private void Start()
+    {
+        //rb = GetComponent<Rigidbody>();         //fetch 
+        playerHeight = player.localScale.y;
+        slidingHeight = playerHeight / 2f;
+        isSliding = false;
+    }
+
+
+    private void Update()
+    {
+        currentHeight = player.localScale.y;
+
+        if (Input.GetKey(slideKey)) // valta se ena input controller ola mazi me tou movement
+            isSliding = true;
+        if (Input.GetKeyUp(slideKey))
+            isSliding = false;
+
+
+        if (isSliding) //amin
+        {
+            StartSliding();
+
+        }
+        else if (!isSliding)
+        {
+            if (Physics.Raycast(transform.position, Vector3.up, out slidingHit, distanceAboveHeadWhenCrouching, ~Player)) //to prevent clipping when under an object
+            {
+                StartSliding();  //if wall above, stay in sliding height
+            }
+            else if (!Physics.Raycast(transform.position, Vector3.up, out slidingHit, distanceAboveHeadWhenCrouching, ~Player))
+                StopSlide();
+        }
+    }
+
+
+
+
+    private void FixedUpdate()
+    {
+        //might need later
+    }
+
+    private void StartSliding()
+    {
+        elapsedTimeForCrouch += Time.deltaTime;
+        float percComplete = elapsedTimeForCrouch / time;
+        float newY;
+
+
+        if (currentHeight > slidingHeight)
+        {
+            newY = Mathf.Lerp(currentHeight, slidingHeight, curve.Evaluate(percComplete));
+
+            player.localScale = new Vector3(player.localScale.x, newY, player.localScale.z);
+
+        }
+        elapsedTimeForStanding = 0;
+    }
+
+
+    /*private void SlidingMovement()
+    {
+        //might need later
+    }*/
+
+
+    public void StopSlide()
+    {
+        elapsedTimeForStanding += Time.deltaTime;
+        float percComplete = elapsedTimeForStanding / time;
+        float newY;
+
+
+        if (currentHeight < playerHeight)
+        {
+            newY = Mathf.Lerp(currentHeight, playerHeight, curve.Evaluate(percComplete));
+
+            player.localScale = new Vector3(player.localScale.x, newY, player.localScale.z);
+
+        }
+        elapsedTimeForCrouch = 0;
+    }
+
+
+}
