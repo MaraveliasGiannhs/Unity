@@ -1,0 +1,188 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CamBobbingTest : MonoBehaviour
+{
+    [Header("Vertical bobbing")]
+    public float bobbingSpeed; // Speed of the camera bobbing
+    public float bobbingAmount; // Amount of camera bobbing
+    public float midpoint = 2.0f; // Midpoint of the bobbing motion
+
+    private float timer = 0.0f;
+    [Header("Horizontal Tilt")]
+    public float cameraTiltMultiplier;
+    public float cameraTiltSmoothTime;
+    public float cameraZTilt;
+    public float maxCamZTilt;
+
+    private float horizontal;
+    private float vertical;
+    [SerializeField] private StateManager sm;
+    camController cc;
+
+
+    public float maxVaultTilt;
+    public float vMulti;
+    public float VaultSmoothTime;
+
+
+
+    public float time;
+    float elapsedTime = 0;
+    float percComplete;
+
+
+
+
+
+    void Start()
+    {
+        cc = GetComponentInParent<camController>();
+        //sm = GetComponent<StateManager>();
+    }
+
+
+
+
+    void Update()
+    {
+        TiltCameraOnVault();
+        //TiltCamera();
+        TiltCameraWithHorizontalMovement();
+        ChangeBobbingSpeed();
+
+        // Check if the player is moving
+        if ((Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f) && sm.movementState != StateManager.MovementState.Sliding )
+        {
+            // Calculate the vertical position of the camera using a sinusoidal function
+            float waveslice = 0.0f;
+             horizontal = Input.GetAxis("Horizontal");
+             vertical = Input.GetAxis("Vertical");
+
+            if (Mathf.Abs(horizontal) == 0 && Mathf.Abs(vertical) == 0)
+            {
+                timer = 0.0f;
+            }
+            else
+            {
+                waveslice = Mathf.Sin(timer);
+                timer += bobbingSpeed;
+                if (timer > Mathf.PI * 2)
+                {
+                    timer -= Mathf.PI * 2;
+                }
+            }
+
+            // Calculate the position offset based on the waveslice
+            float translateChange = 0.0f;
+            float totalAxes = Mathf.Abs(horizontal) + Mathf.Abs(vertical);
+            totalAxes = Mathf.Clamp(totalAxes, 0.0f, 1.0f);
+            waveslice = totalAxes * waveslice;
+
+            translateChange = waveslice * bobbingAmount;
+
+            // Apply the bobbing motion to the camera's position
+            Vector3 localPosition = transform.localPosition;
+            localPosition.y = midpoint + translateChange;
+            transform.localPosition = localPosition;
+
+
+            
+            
+
+
+        }
+        else
+        {
+            // If the player is not moving, reset the timer and return the camera to its original position
+            timer = 0.0f;
+            Vector3 localPosition = transform.localPosition;
+            localPosition.y = midpoint;
+            transform.localPosition = localPosition;
+        }
+    }
+
+    void TiltCamera()
+    {
+        //TODO : add tilt to the camera when moving horizontally OR make the tilt exclusivelly for AD movement
+
+        cameraZTilt = Mathf.Lerp(0, cc.mouseX * cameraTiltMultiplier, cameraTiltSmoothTime);
+        
+        if (cameraZTilt > maxCamZTilt)
+        {
+            cameraZTilt = maxCamZTilt;
+        }
+        else if (cameraZTilt < -maxCamZTilt)
+        {
+            cameraZTilt = -maxCamZTilt;
+        }
+        transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
+    }
+
+    void ChangeBobbingSpeed()
+    {
+        if (sm.movementState == StateManager.MovementState.Sprinting)
+        {
+            bobbingSpeed = 0.15f;
+            bobbingAmount = 0.1f;
+        }
+            
+        else
+            bobbingSpeed = 0.09f;
+    }
+
+    void TiltCameraWithHorizontalMovement()
+    {
+        /*if (horizontal > 0) //moving right
+        {
+            cameraZTilt = Mathf.Lerp(0, maxCamZTilt * cameraTiltMultiplier, cameraTiltSmoothTime);
+        }
+        else if (horizontal < 0)
+        {
+            cameraZTilt = Mathf.Lerp(0, maxCamZTilt * cameraTiltMultiplier, cameraTiltSmoothTime);
+        }
+        else
+            cameraZTilt = Mathf.Lerp(cameraZTilt, 0, cameraTiltSmoothTime);*/
+        cameraZTilt = Mathf.Lerp(cameraZTilt, -horizontal * cameraTiltMultiplier, cameraTiltSmoothTime);
+
+        if (cameraZTilt > maxCamZTilt)
+        {
+            cameraZTilt = maxCamZTilt;
+        }
+        else if (cameraZTilt < -maxCamZTilt)
+        {
+            cameraZTilt = -maxCamZTilt;
+        }
+        transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
+
+    }
+
+    void TiltCameraOnVault()
+    {
+        
+
+
+        if (Input.GetKey(KeyCode.F))
+        {
+            elapsedTime += Time.deltaTime;
+            percComplete = elapsedTime / time;
+
+            maxCamZTilt = -5f;
+
+            cameraZTilt = Mathf.Lerp(cameraZTilt, maxCamZTilt, elapsedTime);
+            transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
+        }
+        else
+        {
+            maxCamZTilt = 2f;
+            elapsedTime = 0;
+        }
+        /*if(tilt >= maxTiltAngle)
+        {
+            maxTiltAngle = 0;
+            tilt = Mathf.Lerp(camHolder.transform.localEulerAngles.z, maxTiltAngle * tiltSpeed, camTime);
+            camHolder.transform.localEulerAngles = new Vector3(0, 0, tilt);
+        }*/
+    }
+}
