@@ -4,12 +4,16 @@ using UnityEngine;
 
 public class CamBobbingTest : MonoBehaviour
 {
+    [SerializeField] private StateManager sm;
+    camController cc;
+
+
     [Header("Vertical bobbing")]
     public float bobbingSpeed; // Speed of the camera bobbing
     public float bobbingAmount; // Amount of camera bobbing
-    public float midpoint = 2.0f; // Midpoint of the bobbing motion
-
+    public float midpoint; // Midpoint of the bobbing motion
     private float timer = 0.0f;
+    
     [Header("Horizontal Tilt")]
     public float cameraTiltMultiplier;
     public float cameraTiltSmoothTime;
@@ -18,19 +22,19 @@ public class CamBobbingTest : MonoBehaviour
 
     private float horizontal;
     private float vertical;
-    [SerializeField] private StateManager sm;
-    camController cc;
 
-
-    public float maxVaultTilt;
-    public float vMulti;
+    [Header("For Vault Animation")]
     public float VaultSmoothTime;
+    public float maxVaultTilt;
+    public bool canTiltCam;
+
+    public AnimationCurve curve;
+    private float elapsedTime=0;
 
 
 
-    public float time;
-    float elapsedTime = 0;
-    float percComplete;
+
+
 
 
 
@@ -43,11 +47,18 @@ public class CamBobbingTest : MonoBehaviour
     }
 
 
-
-
     void Update()
     {
-        TiltCameraOnVault();
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            StartCoroutine(TiltCameraOnVault());
+            
+        
+        }
+        if (canTiltCam)
+            Tilt();
+
+
         //TiltCamera();
         TiltCameraWithHorizontalMovement();
         ChangeBobbingSpeed();
@@ -87,11 +98,6 @@ public class CamBobbingTest : MonoBehaviour
             localPosition.y = midpoint + translateChange;
             transform.localPosition = localPosition;
 
-
-            
-            
-
-
         }
         else
         {
@@ -106,6 +112,7 @@ public class CamBobbingTest : MonoBehaviour
     void TiltCamera()
     {
         //TODO : add tilt to the camera when moving horizontally OR make the tilt exclusivelly for AD movement
+        //done, ill prob remove this method;
 
         cameraZTilt = Mathf.Lerp(0, cc.mouseX * cameraTiltMultiplier, cameraTiltSmoothTime);
         
@@ -134,55 +141,32 @@ public class CamBobbingTest : MonoBehaviour
 
     void TiltCameraWithHorizontalMovement()
     {
-        /*if (horizontal > 0) //moving right
-        {
-            cameraZTilt = Mathf.Lerp(0, maxCamZTilt * cameraTiltMultiplier, cameraTiltSmoothTime);
-        }
-        else if (horizontal < 0)
-        {
-            cameraZTilt = Mathf.Lerp(0, maxCamZTilt * cameraTiltMultiplier, cameraTiltSmoothTime);
-        }
-        else
-            cameraZTilt = Mathf.Lerp(cameraZTilt, 0, cameraTiltSmoothTime);*/
+
         cameraZTilt = Mathf.Lerp(cameraZTilt, -horizontal * cameraTiltMultiplier, cameraTiltSmoothTime);
 
-        if (cameraZTilt > maxCamZTilt)
-        {
-            cameraZTilt = maxCamZTilt;
-        }
-        else if (cameraZTilt < -maxCamZTilt)
-        {
-            cameraZTilt = -maxCamZTilt;
-        }
         transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
 
     }
 
-    void TiltCameraOnVault()
+    IEnumerator TiltCameraOnVault()
     {
-        
+        canTiltCam = true;
+
+        yield return new WaitForSecondsRealtime(0.5f);
+        canTiltCam = false;
+        elapsedTime = 0;
 
 
-        if (Input.GetKey(KeyCode.F))
-        {
-            elapsedTime += Time.deltaTime;
-            percComplete = elapsedTime / time;
 
-            maxCamZTilt = -5f;
+    }
 
-            cameraZTilt = Mathf.Lerp(cameraZTilt, maxCamZTilt, elapsedTime);
-            transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
-        }
-        else
-        {
-            maxCamZTilt = 2f;
-            elapsedTime = 0;
-        }
-        /*if(tilt >= maxTiltAngle)
-        {
-            maxTiltAngle = 0;
-            tilt = Mathf.Lerp(camHolder.transform.localEulerAngles.z, maxTiltAngle * tiltSpeed, camTime);
-            camHolder.transform.localEulerAngles = new Vector3(0, 0, tilt);
-        }*/
+    void Tilt()
+    {
+        elapsedTime += Time.deltaTime;
+        float percComplete = elapsedTime / VaultSmoothTime;
+
+        cameraZTilt = Mathf.Lerp(cameraZTilt, maxVaultTilt, curve.Evaluate(percComplete));
+
+        transform.localEulerAngles = new Vector3(0, 0, cameraZTilt);
     }
 }
