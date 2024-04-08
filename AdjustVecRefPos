@@ -1,0 +1,68 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class AdjustVaultVecRefPos : MonoBehaviour
+{
+    [SerializeField] private Transform player;
+    [SerializeField] private MoveTestWithChild ms;
+    [SerializeField] private SpeedManager sm;
+    [SerializeField] private StateManager stateM;
+    [SerializeField] private CapsuleCollider capsule;
+
+    [SerializeField] private CamBobbingTest cb;
+    public Transform camHolder;
+
+    public float xOffset = 0;
+    public float yOffset = 1.5f;
+    public float zOffset = 1f;
+
+    public float tilt;
+    public float maxTiltAngle;
+    public float tiltSpeed;
+    public float camTime;
+
+    public bool isVaulting;
+
+    public float time;
+    public float elapsedTime;
+    public float percComplete;
+
+    public Transform from,to;
+
+    public Rigidbody rb;
+    void Start()
+    {
+
+        //player = GetComponentInParent<Transform>();
+        //ms = GetComponent<MoveTestWithChild>();
+
+        from.transform.position = player.transform.position;
+    }
+
+    void Update()
+    {
+
+        transform.localPosition = new Vector3(xOffset, yOffset, zOffset);
+
+
+
+        if (ms.CanVault()) //if is colliding kai vgale to CanVault apto MoveWithTestChild, to idio einai
+        {
+            from.transform.position = player.transform.position;
+            to.transform.position = transform.position;
+
+            if (Input.GetKeyDown(KeyCode.Space) && !isVaulting) //auto tha mpei h sto MoveWTC h sto speed manager, mallon sto prwto
+            {
+                elapsedTime += Time.deltaTime;
+                percComplete = elapsedTime / time;
+                //isVaulting = true;
+                player.transform.position = Vector3.Slerp(from.position, to.position, time);
+                
+                //TiltCameraOnVault();
+
+
+            }
+        }
+    }
+}
