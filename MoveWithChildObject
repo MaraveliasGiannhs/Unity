@@ -4,77 +4,79 @@ using UnityEngine;
 
 public class MoveTestWithChild : MonoBehaviour
 {
+    [Header("Scripts, Transforms and Rigidbodies")]
+    CollideDetector vaultColBot;
+    StateManager sm;
+    [SerializeField] SlidingVectorRotation sv;
+    public Transform groundCheck;
+    public Transform player;
+    public Rigidbody rb;
 
-    [Header("Movement")]
+
     public float acceleration = 5f;
+
+
+    [Header("Movement Vectors")]
     public Vector3 dir;
-    public float distanceStepCheck;
-    public float groundSphereDistance = 2f;
-    public float jumpDistanceCheck;
-    public bool isGrounded;
-    public bool jumpCheck;
-    public bool canJump;
-
-
-
-    //public float verticalAxis;
-    //public float horizontalAxis;
-
     public Vector3 forwardMovement;
     public Vector3 rightMovement;
 
+
+    [Header("Sliding Vectors")]
+    public Vector3 slideDir;
     public Vector3 forwardSlide;
     public Vector3 rightSlide;
 
 
-    float slopeAngle;
-    float forwardAngle;
-    float rightAngle;
-    bool onSlope;
-    RaycastHit stepHit;
+    [Header("Jump/Ground/Slope Checks")]
+    public float distanceStepCheck; //for slope check
+    public float groundSphereDistance = 2f;
+    public float jumpDistanceCheck; //needs to be smaller than ground sphere to avoid inconsistent jumps
+    public bool isGrounded;
+    public bool canJump;
+    
 
-    public Transform VecRef; //for running
-    public Transform player;
-    public Transform playerRb;
-    public Rigidbody rb;
-    public Transform groundCheck;
-
+    [Header("Layers")]
     public LayerMask isGround;
-    public LayerMask IgnorePlayerLayermask;
-    float rotatedX;
-    float rotatedY;
-    float rotatedZ;
+    public LayerMask playerLayermask;
 
-    public Vector3 slideDir;
-    StateManager sm;
 
-    //Wallrun wr;
-
-    //[HideInInspector]
+    [Header("Inputs")]
     public float horizontalInput;
-    //[HideInInspector]
     public float verticalInput;
+
+
+    [Header("Key Binds")]  //might move to Input Manager
     public KeyCode sprintButton = KeyCode.LeftShift;
     public KeyCode jumpButton = KeyCode.Space;
-    //StateManager sm;
 
-    [SerializeField] private SlidingVectorRotation sv;
 
-    public float slidingStrafeSpeed;
+    private float rotatedX;
+    private float rotatedY;
+    private float rotatedZ;
+
+
+    private float slopeAngle;
+    private float forwardAngle;
+    private float rightAngle;
+    private bool onSlope;
+    private RaycastHit stepHit;
+
+    //public float slidingStrafeSpeed;
 
     void Start()
     {
-        rb = playerRb.GetComponent<Rigidbody>();
+        rb = GetComponentInParent<Rigidbody>();
         sm = GetComponent<StateManager>();
 
+        vaultColBot = GetComponentInParent<CollideDetector>();
     }
 
 
     void Update()
     {
-        Step();
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundSphereDistance, isGround);
-        jumpCheck = Physics.CheckSphere(groundCheck.position, jumpDistanceCheck, isGround);
+        Step(); //edw htan arxika
+        JumpCheck();
 
     }
 
@@ -82,19 +84,20 @@ public class MoveTestWithChild : MonoBehaviour
     void FixedUpdate()
     {
         PlayerMovement();
+        CanVault();
     }
 
     void PlayerMovement()
     {
 
-        VecRef.transform.eulerAngles = new Vector3(rotatedX, rb.transform.eulerAngles.y, rotatedZ);  //yyayayyaya
+        transform.eulerAngles = new Vector3(rotatedX, rb.transform.eulerAngles.y, rotatedZ);  //rotate vector
 
         horizontalInput = Input.GetAxis("Horizontal");
         verticalInput = Input.GetAxis("Vertical");
 
         //dir for running and sprinting
-        forwardMovement = VecRef.transform.forward * verticalInput;
-        rightMovement = VecRef.transform.right * horizontalInput;
+        forwardMovement = transform.forward * verticalInput;
+        rightMovement = transform.right * horizontalInput;
         dir = (forwardMovement + rightMovement).normalized;
 
 
@@ -104,37 +107,60 @@ public class MoveTestWithChild : MonoBehaviour
         slideDir = (forwardSlide + rightSlide).normalized;
 
 
-
-
-        if (dir != Vector3.zero) //for bug
+        //for bug
+        if (dir != Vector3.zero)
             player.transform.forward = dir * Time.deltaTime;
 
         //apo edw k katw ta speed checks
     }
 
+
     void Step()
     {
-        onSlope = Physics.Raycast(VecRef.transform.position, Vector3.down, out stepHit, distanceStepCheck, ~IgnorePlayerLayermask);
+        onSlope = Physics.Raycast(transform.position, Vector3.down, out stepHit, distanceStepCheck, ~playerLayermask);
 
         if (onSlope)  //sinistwsa
         {
 
-            slopeAngle = Vector3.Angle(Vector3.up, stepHit.normal);
-            forwardAngle = Vector3.Angle(VecRef.transform.forward, stepHit.normal) - 90;
-            rightAngle = Vector3.Angle(VecRef.transform.right, stepHit.normal) - 90;
+            slopeAngle = Vector3.Angle(Vector3.up, stepHit.normal);  
+            forwardAngle = Vector3.Angle(transform.forward, stepHit.normal) - 90;
+            rightAngle = Vector3.Angle(transform.right, stepHit.normal) - 90;
 
-            rotatedX = VecRef.transform.eulerAngles.x - forwardAngle;
-            rotatedZ = VecRef.transform.eulerAngles.z + rightAngle;
+            rotatedX = transform.eulerAngles.x - forwardAngle;
+            rotatedZ = transform.eulerAngles.z + rightAngle;
         }
         else
         {
 
             slopeAngle = Vector3.Angle(Vector3.up, stepHit.normal);
-            forwardAngle = Vector3.Angle(VecRef.transform.forward, stepHit.normal) + 45;
-            rightAngle = Vector3.Angle(VecRef.transform.right, stepHit.normal) + 45;
+            forwardAngle = Vector3.Angle(transform.forward, stepHit.normal) + 45;
+            rightAngle = Vector3.Angle(transform.right, stepHit.normal) + 45;
 
             rotatedX = 0f;
             rotatedZ = 0f;
         }
     }
+
+    public bool CanVault()
+    {
+        if (vaultColBot.IsColliding)
+        {
+            print("can vault");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    public void JumpCheck()
+    {
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundSphereDistance, isGround);
+        bool jumpSphere = Physics.CheckSphere(groundCheck.position, jumpDistanceCheck, isGround);
+
+        if (isGrounded && jumpSphere)
+            canJump = true;
+        else
+            canJump = false;
+    }
 }
+
