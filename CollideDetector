@@ -1,0 +1,29 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CollideDetector : MonoBehaviour
+{
+
+    public bool IsColliding = false;
+    [SerializeField] BoxCollider bottomBox;
+
+
+     void Start()
+    {
+        GameObject vault = GameObject.FindGameObjectWithTag("Vaultable");
+    }
+
+    void OnTriggerEnter(Collider bottomBox)  //yeeeyeyey
+    {
+        if (bottomBox.gameObject.tag == "Vaultable")
+        {
+            IsColliding = true;
+        }
+    }
+
+    void OnTriggerExit(Collider bottomBox)
+    {
+        IsColliding = false;
+    }
+}
