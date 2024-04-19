@@ -1,0 +1,39 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SlidingVectorRotation : MonoBehaviour
+{
+    //Rotation references
+    [SerializeField] private StateManager sm;  // Script reference
+    public Transform SlidingVecRefForXZ;      // From Step Check object
+    public Transform SlidingVecRefForY;      // From Player object
+
+    /*private float tempRotationX;
+    private float tempRotationY;
+    private float tempRotationZ;*/
+    private float lockedYRotation;
+
+    public Vector3 eulerRotation; //slide Dir
+    
+
+    void FixedUpdate()  //fixed giati prepei na sugxronistei me thn allagh tou dir sto script MoveTestWithChild
+    {
+        if (Input.GetKey(sm.slideKey)) //lock sliding direction
+        {
+            //for visual purposes
+            transform.position = SlidingVecRefForXZ.position;
+
+            eulerRotation = new Vector3(SlidingVecRefForXZ.eulerAngles.x, lockedYRotation, SlidingVecRefForXZ.eulerAngles.z);
+            transform.rotation = Quaternion.Euler(eulerRotation);
+        }
+        else //keep updating rotation
+        {
+
+            //for visual purposes
+            transform.SetPositionAndRotation(SlidingVecRefForXZ.position, SlidingVecRefForXZ.rotation); //nice            
+            
+            lockedYRotation = SlidingVecRefForY.eulerAngles.y; //save for use while sliding
+        }
+    }
+}
