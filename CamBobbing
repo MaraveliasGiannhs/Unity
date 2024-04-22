@@ -33,13 +33,6 @@ public class CamBobbingTest : MonoBehaviour
 
 
 
-
-
-
-
-
-
-
     void Start()
     {
         cc = GetComponentInParent<camController>();
@@ -155,9 +148,6 @@ public class CamBobbingTest : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.5f);
         canTiltCam = false;
         elapsedTime = 0;
-
-
-
     }
 
     void Tilt()
